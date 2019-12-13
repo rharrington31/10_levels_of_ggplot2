@@ -1,0 +1,451 @@
+---
+title: 'Building a Better Graph'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+if(!require("pacman")) install.packages("pacman")
+pacman::p_load(
+   here
+  ,tidyverse
+)
+```
+
+
+```{r}
+tickets <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-12-03/tickets.csv")
+```
+
+```{r}
+tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING")) %>% 
+  count(violation_desc_condensed) %>%
+  filter(str_detect(violation_desc_condensed, "LOAD"))
+```
+
+
+# Level 0: Base Plot
+
+```{r}
+theme_set(theme_gray())
+
+tickets %>% 
+  ggplot(aes(x = violation_desc)) +
+  geom_bar()
+
+ggsave(here::here("Level_00.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+# Level 1: Data Cleaning
+
+```{r}
+tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING"),
+         violation_desc_other = fct_lump(f = violation_desc_condensed, n = 9),
+         violation_desc_other = str_to_title(violation_desc_other)) %>% 
+  count(violation_desc_other) %>% 
+  ggplot(aes(x = violation_desc_other,
+             y = n)) +
+  geom_col()
+
+ggsave(here::here("Level_01.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+# Level 2: Default Themes
+
+```{r}
+tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING"),
+         violation_desc_other = fct_lump(f = violation_desc_condensed, n = 9),
+         violation_desc_other = str_to_title(violation_desc_other)) %>% 
+  count(violation_desc_other) %>% 
+  ggplot(aes(x = violation_desc_other,
+             y = n)) +
+  geom_col() +
+  theme_minimal()
+
+ggsave(here::here("Level_02.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+# Level 3: scale_y_continuous + scales::comma
+
+```{r}
+tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING"),
+         violation_desc_other = fct_lump(f = violation_desc_condensed, n = 9),
+         violation_desc_other = str_to_title(violation_desc_other)) %>% 
+  count(violation_desc_other) %>% 
+  ggplot(aes(x = violation_desc_other,
+             y = n)) +
+  geom_col() +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal()
+
+ggsave(here::here("Level_03.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+# Level 4: coord_flip + fct_reorder
+
+```{r}
+tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING"),
+         violation_desc_other = fct_lump(f = violation_desc_condensed, n = 9),
+         violation_desc_other = str_to_title(violation_desc_other)) %>% 
+  count(violation_desc_other) %>% 
+  mutate(violation_desc_other = fct_reorder(violation_desc_other, n)) %>% 
+  ggplot(aes(x = violation_desc_other,
+             y = n)) +
+  geom_col() +
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() +
+  theme_minimal()
+
+ggsave(here::here("Level_04.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+# Level 5: Window Dressing
+
+* Change your axis labels with `labs`
+* Change the color of your bar plot
+
+```{r}
+tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING"),
+         violation_desc_other = fct_lump(f = violation_desc_condensed, n = 9),
+         violation_desc_other = str_to_title(violation_desc_other)) %>% 
+  count(violation_desc_other) %>% 
+  mutate(violation_desc_other = fct_reorder(violation_desc_other, n)) %>% 
+  ggplot(aes(x = violation_desc_other,
+             y = n)) +
+  geom_col(fill = "#E83536") +
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() +
+  labs(x = "Violation Description",
+       y = "Number of Tickets Issued",
+       title = "Number of Tickets Issued by Violation Description") +
+  theme_minimal()
+
+ggsave(here::here("Level_05.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+# Level 6: Build Your Own Theme
+
+```{r}
+tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING"),
+         violation_desc_other = fct_lump(f = violation_desc_condensed, n = 9),
+         violation_desc_other = str_to_title(violation_desc_other)) %>% 
+  count(violation_desc_other) %>% 
+  mutate(violation_desc_other = fct_reorder(violation_desc_other, n)) %>% 
+  ggplot(aes(x = violation_desc_other,
+             y = n)) +
+  geom_col(fill = "#E83536") +
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() +
+  labs(x = "Violation Description",
+       y = "Number of Tickets Issued",
+       title = "Number of Tickets Issued by Violation Description") +
+  theme_minimal() +
+  theme(text = element_text(family = "Roboto",
+                            size = 10),
+        axis.title = element_text(face = "bold"),
+        axis.text = element_text(face = "italic"),
+        plot.title = element_text(face = "bold",
+                                  size = 12))
+
+ggsave(here::here("Level_06.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+```{r}
+# Build CompassRed theme
+theme_compassred <- function () { 
+  theme_minimal(base_size=10, base_family="Roboto") %+replace% 
+    theme(axis.title = element_text(face = "bold"),
+          axis.text = element_text(face = "italic"),
+          plot.title = element_text(face = "bold",
+                                    size = 12)
+          
+    )
+}
+
+theme_set(theme_compassred())
+```
+
+# Level 7: Layer Multiple Geometries
+
+```{r}
+tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING"),
+         violation_desc_other = fct_lump(f = violation_desc_condensed, n = 9),
+         violation_desc_other = str_to_title(violation_desc_other)) %>% 
+  count(violation_desc_other) %>% 
+  mutate(violation_desc_other = fct_reorder(violation_desc_other, n)) %>% 
+  ggplot(aes(x = violation_desc_other,
+             y = n)) +
+  geom_col(fill = "#E83536") +
+  geom_label(aes(label = scales::comma(n)),
+             size = 2.5,
+             nudge_y = 30000) +
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() +
+  labs(x = "Violation Description",
+       y = "Number of Tickets Issued",
+       title = "Number of Tickets Issued by Violation Description")
+
+ggsave(here::here("Level_07.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+# Level 8: Highlight A Key Field
+
+* Transform the data
+* Move the fill to inside the aesthetic mapping
+* Change colors with `scale_fill_manual`
+* Remove the legend
+
+```{r}
+tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING"),
+         violation_desc_other = fct_lump(f = violation_desc_condensed, n = 9),
+         violation_desc_other = str_to_title(violation_desc_other)) %>% 
+  count(violation_desc_other) %>% 
+  mutate(violation_desc_other = fct_reorder(violation_desc_other, n),
+         highlight = violation_desc_other == "Parking Prohibited") %>% 
+  ggplot(aes(x = violation_desc_other,
+             y = n)) +
+  geom_col(aes(fill = highlight),
+           alpha = 0.8) +
+  geom_label(aes(label = scales::comma(n)),
+             size = 2.5,
+             nudge_y = 30000) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_fill_manual(values = c("gray75", "#E83536")) +
+  coord_flip() +
+  labs(x = "Violation Description",
+       y = "Number of Tickets Issued",
+       title = "Number of Tickets Issued by Violation Description") +
+  guides(fill = "none")
+
+ggsave(here::here("Level_08.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+# Level 9: Annotate
+
+* Decide where to put the annotation and add a `geom_label`
+* Build a 
+
+```{r}
+tickets_agg <- 
+  tickets %>% 
+  mutate(violation_desc_condensed = str_remove(violation_desc,
+                                               " CC$"),
+         violation_desc_condensed = str_trim(violation_desc_condensed),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "STOPPING", "STOP"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "HIWY", "HIGHWAY"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PROH\\w+", "PROHIBITED"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "(PARK) PROHIBITED", "PARKING"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "PASSENGR", "PASSENGER"),
+         violation_desc_condensed = str_replace(violation_desc_condensed, "LOADNG", "LOADING"),
+         violation_desc_other = fct_lump(f = violation_desc_condensed, n = 9),
+         violation_desc_other = str_to_title(violation_desc_other)) %>% 
+  count(violation_desc_other) %>% 
+  mutate(violation_desc_other = fct_reorder(violation_desc_other, n),
+         highlight = violation_desc_other == "Parking Prohibited")
+
+ticket_note <- 
+  paste("There appears to be different tiers of violations\n",
+        "based upon the number of tickets issued.\n\n",
+        "'Meter Expired' is in a tier of its own.\n\n",
+        "'Parking Prohibited' ends the next tier.")
+
+arrow_position <- data.frame(x_start = 4,
+                             x_end   = 5,
+                             y_start = 300000,
+                             y_end   = 147000)
+
+ggplot() +
+  geom_col(data = tickets_agg,
+           mapping = aes(x    = violation_desc_other,
+                         y    = n,
+                         fill = highlight),
+           alpha = 0.8) +
+  geom_label(data = tickets_agg,
+             aes(x     = violation_desc_other,
+                 y     = n,
+                 label = scales::comma(n)),
+             size = 2.5,
+             nudge_y = 30000) +
+  geom_label(data = filter(tickets_agg, 
+                           highlight == T),
+             mapping = aes(x     = violation_desc_other,
+                           y     = n,
+                           label = ticket_note),
+             hjust = 0,
+             nudge_x = -2.5,
+             nudge_y = 80000,
+             family = "Roboto",
+             size = 3,
+             fontface = "italic",
+             label.r = unit(0, "lines")) +
+  geom_curve(data = arrow_position,
+             mapping = aes(x    = x_start,
+                           y    = y_start,
+                           xend = x_end,
+                           yend = y_end),
+             curvature = 0.1,
+             size = 0.25,
+             # color = "gray75",
+             arrow = arrow(length = unit(0.015, "npc"),
+                           type = "closed")) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_fill_manual(values = c("gray75", "#E83536")) +
+  coord_flip() +
+  labs(x = "Violation Description",
+       y = "Number of Tickets Issued",
+       title = "Number of Tickets Issued by Violation Description") +
+  guides(fill = "none")
+
+ggsave(here::here("Level_09.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
+# Level 10: Tidy it Up
+
+```{r}
+arrow_position <- data.frame(x_start = 3.85,
+                             x_end   = 5,
+                             y_start = 300000,
+                             y_end   = 147000)
+
+ggplot() +
+  geom_col(data = tickets_agg,
+           mapping = aes(x    = violation_desc_other,
+                         y    = n,
+                         fill = highlight),
+           alpha = 0.8) +
+  geom_label(data = tickets_agg,
+             aes(x     = violation_desc_other,
+                 y     = n,
+                 label = scales::comma(n)),
+             size = 2.5,
+             nudge_y = 30000) +
+  geom_label(data = filter(tickets_agg, 
+                           highlight == T),
+             mapping = aes(x     = violation_desc_other,
+                           y     = n,
+                           label = ticket_note),
+             hjust = 0,
+             nudge_x = -2.5,
+             nudge_y = 80000,
+             family = "Roboto",
+             size = 3,
+             fontface = "italic",
+             label.r = unit(0, "lines")) +
+  geom_curve(data = arrow_position,
+             mapping = aes(x    = x_start,
+                           y    = y_start,
+                           xend = x_end,
+                           yend = y_end),
+             curvature = 0.1,
+             size = 0.25,
+             # color = "gray75",
+             arrow = arrow(length = unit(0.015, "npc"),
+                           type = "closed")) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_fill_manual(values = c("gray75", "#E83536")) +
+  coord_flip() +
+  labs(title = "Number of Tickets Issued by Violation Description") +
+  guides(fill = "none") +
+  theme(panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = -0.5))
+
+ggsave(here::here("Level_10.png"),
+       width = 8, height = 4.5, dpi = 300)
+```
+
